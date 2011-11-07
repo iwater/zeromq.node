@@ -24,6 +24,7 @@
 #include <ev.h>
 #include <node.h>
 #include <node_buffer.h>
+#include <node_version.h>
 #include <zmq.h>
 #include <assert.h>
 #include <stdio.h>
@@ -80,7 +81,13 @@ namespace zmq {
 
       struct BindState;
       static Handle<Value> Bind(const Arguments &args);
-      static int EIO_DoBind(eio_req *req);
+      static
+#if NODE_VERSION_AT_LEAST(0, 5, 4)
+  void
+#else
+  int
+#endif
+ EIO_DoBind(eio_req *req);
       static int EIO_BindDone(eio_req *req);
       static Handle<Value> BindSync(const Arguments &args);
 
@@ -446,12 +453,19 @@ namespace zmq {
     return Undefined();
   }
 
+#if NODE_VERSION_AT_LEAST(0, 5, 4)
+  void
+#else
   int
+#endif
   Socket::EIO_DoBind(eio_req *req) {
     BindState* state = (BindState*) req->data;
     if (zmq_bind(state->sock, *state->addr) < 0)
       state->error = zmq_errno();
-    return 0;
+#if NODE_VERSION_AT_LEAST(0, 5, 4)
+#else
+      return 0;
+#endif
   }
 
   int
